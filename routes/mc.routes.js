@@ -23,21 +23,6 @@ const mc_ping = async () => {
   	throw new Error("Can not connect to Mailchimp.")
 }
 
-// DEPRECATED, gets only 10 and max of 1000 members. Using searchMembers.search() instead.
-/** Retrieves list of users from Mailchimp and returns array of e-mail directions. */
-/* const mc_getMembersList = async () => {
-	const response = await mailchimp.lists.getListMembersInfo(MC_LIST_ID);
-	if (response.members)
-	{
-		//console.log(response.members);
-		console.log(response.members.map(object => object.email_address));
-		return (response.members.map(object => object.email_address));
-	}
-	else
-		throw new Error("The retrieved list has no members");	
-	//console.log(response);
-}; */
-
 /** Search if the e-mail already exists in Mailchimp List
  * (resurns 0 if not or > 0 if yes) */
 const mc_isInList = async (email) => {
@@ -45,18 +30,7 @@ const mc_isInList = async (email) => {
 	return (response.exact_matches.members.length);
 }
 
-
-const mc_addListMember = async (email) => {
-	console.log('\tinside addMember');
-  const response = await mailchimp.lists.addListMember(MC_LIST_ID, {
-    email_address: email,
-    status: "subscribed",
-	// tags: ["Joined Waitlist", "Survey Opened"],
-  });
-  return response;
-  // console.log(response);
-};
-
+// POST /mc/add-user
 router.post("/add-user", async (req, res, next) => {
 	const newEmail = req.body.email;
 	console.log('emal argument is: ', newEmail);
@@ -85,13 +59,13 @@ router.post("/add-user", async (req, res, next) => {
 		console.log(`addListMember response: `, addMemberResponse.email_address);
 		if (addMemberResponse.email_address === newEmail) {
 			//RESPONSE TO FRONTEND
-			res.json({'message':`received email: ${newEmail}`});
+			res.status(200).json({'message':`received email: ${newEmail}`});
 		}
-		console.log(newEmail, ' saved to MC list');
+		// console.log(newEmail, ' saved to MC list');
 			// respond to frontend with an OK and frontend shows typeform survey
 	} catch (err) {
 		console.error(err);
-		res.status(500).send({"error":`${err}`});
+		res.status(500).json({"error":`${err}`});
 	}
 });
 
