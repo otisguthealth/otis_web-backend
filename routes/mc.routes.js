@@ -1,26 +1,28 @@
 const router = require("express").Router();
 const mailchimp = require("@mailchimp/mailchimp_marketing");
 
+//SET MESSAGES TEXTS (these are responses sent to the frontend)
+const ERR_MSG_ALREADY_EXISTS = "Oops! You already signed up. Check your inbox."
+const ERR_MSG_MAILCHIMP_CONNECTION = "Can not connect to Mailchimp.";
+const MSG_SUCCESS_SIGNUP = "Signed up successfully!";
+
 const MC_LIST_ID = process.env.MAILCHIMP_LIST_ID;
 const MC_SERVER = process.env.MAILCHIMP_SERVER;
 const MC_API_KEY = process.env.MAILCHIMP_API_KEY;
 
-console.log('envs: ',MC_API_KEY, MC_LIST_ID, MC_SERVER);
-
 mailchimp.setConfig({
-  apiKey: process.env.MAILCHIMP_API_KEY,
-  server: process.env.MAILCHIMP_SERVER,
+  apiKey: MC_API_KEY,
+  server: MC_SERVER,
 });
 
 /** Check if the connection to mailchimp via it's API is setup correctly */
 const mc_ping = async () => {
   const response = await mailchimp.ping.get();
   if (response.health_status === "Everything's Chimpy!"){
-  	// console.log(response);
 	return 1;
   }
   else
-  	throw new Error("Can not connect to Mailchimp.")
+  	throw new Error(ERR_MSG_MAILCHIMP_CONNECTION);
 }
 
 /** Search if the e-mail already exists in Mailchimp List
@@ -33,36 +35,25 @@ const mc_isInList = async (email) => {
 // POST /mc/add-user
 router.post("/add-user", async (req, res, next) => {
 	const newEmail = req.body.email;
-	console.log('emal argument is: ', newEmail);
 	try {
 		//check mailchimp connection
-		console.log('starting PING');
 		await mc_ping();
-		console.log('ping OK');
-		
 		//check if newMail already exists in the list
 		//if it exists, respond with error ('already exists')
 		if (await mc_isInList(newEmail)) {
-			console.log('already exists');
-			throw new Error("User with this e-mail already exist.");
+			throw new Error(ERR_MSG_ALREADY_EXISTS);
 		}
-		console.log('email is unique OK');
 		// If it does not exist
-			// Save the mail to mailchimp list (API save member)
-		console.log(`calling addListMember`);
+		// Save the mail to mailchimp list (API save member)
 		const addMemberResponse = await mailchimp.lists.addListMember(MC_LIST_ID, {
 			email_address: newEmail,
 			status: "subscribed",
 			// tags: ["Joined Waitlist", "Survey Opened"],
 		});
-		console.log(999);
-		console.log(`addListMember response: `, addMemberResponse.email_address);
 		if (addMemberResponse.email_address === newEmail) {
-			//RESPONSE TO FRONTEND
-			res.status(200).json({'message':`received email: ${newEmail}`});
+			// RESPONSE TO FRONTEND with an "OK"
+			res.status(200).json({'message': MSG_SUCCESS_SIGNUP });
 		}
-		// console.log(newEmail, ' saved to MC list');
-			// respond to frontend with an OK and frontend shows typeform survey
 	} catch (err) {
 		console.error(err);
 		res.status(500).json({"error":`${err}`});
