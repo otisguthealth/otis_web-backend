@@ -68,7 +68,7 @@ router.post("/add-user", async (req, res, next) => {
 		const addMemberResponse = await mailchimp.lists.addListMember(MC_LIST_ID, {
 			email_address: newEmail,
 			status: "subscribed",
-			tags: [req.body.language],
+			tags: [req.body.language, req.body.variant],
 			// tags: ["Joined Waitlist", "Survey Opened"],
 		});
 		if (addMemberResponse.email_address === newEmail) {
